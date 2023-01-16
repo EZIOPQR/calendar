@@ -93,8 +93,8 @@
     <script>
         var excelData;
         var colName = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH", "AI", "AJ", "AK", "AL", "AM", "AN"];
-        var startTime = [[0, 0], [8, 0], [9, 0], [10, 10], [11, 10], [13, 0], [14, 0], [15, 10], [16, 10], [17, 10], [18, 40], [19, 40], [20, 40]];
-        var endTime = [[0, 0], [8, 50], [9, 50], [11, 0], [12, 0], [13, 50], [14, 50], [16, 0], [17, 0], [18, 0], [19, 30], [20, 30], [21, 30]];
+        var startTime = [[0, 0], [8, 0], [9, 0], [10, 10], [11, 10], [13, 0], [14, 0], [15, 10], [16, 10], [17, 10], [18, 40], [19, 40], [20, 40], [20, 40]];
+        var endTime = [[0, 0], [8, 50], [9, 50], [11, 0], [12, 0], [13, 50], [14, 50], [16, 0], [17, 0], [18, 0], [19, 30], [20, 30], [21, 30], [21, 30]];
         var fileNameContainer = document.getElementById("fileName");
         var main = document.getElementById("main");
         var downloadBtn = document.createElement('input');
@@ -138,7 +138,7 @@
                     type: 'binary'
                 });
                 var curSheet = excelData.Sheets[excelData.SheetNames[0]];
-                console.log(curSheet);
+                //console.log(curSheet);
                 var mergeInfo = new Array();
                 for (var i = 0; i < 32; ++i) {
                     mergeInfo[i] = new Array();
@@ -154,16 +154,31 @@
                 }
                 //console.log(mergeInfo);
 
-                var curRow = 3;
+                var curRow = 2;
+                var rows=new Array();
+                
+                for(var i=1;i<=60;++i){
+                    var startCellName = colName[0] + i;
+                    if(typeof(curSheet[startCellName])!="undefined"){
+                        if(curSheet[startCellName].v=="周"){
+                            rows.push(i);
+                        }
+                    }
+                }
+                console.log(rows);
+                
                 var ans = "";
 
                 var curDate = new Date();
                 var timeStamp = curDate.getTime();
 
                 ans += "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:TPLink\nMETHOD:PUBLISH\nX-WR-CALNAME:Time Schedule\n";
-                while (1) {
+                for(var l=0;l<rows.length;++l){
+                    curRow=rows[l];
                     var startCellName = colName[0] + curRow;
+                    console.log(curRow);
                     if (typeof (curSheet[startCellName]) == "undefined") {
+                        console.log("*");
                         break;
                     }
                     for (var i = 3; i <= 32; ++i) {
@@ -174,11 +189,12 @@
                                 var dateStr = curSheet[colName[i - 1] + (curRow + 1)].v;
                                 dateStr = dateStr.split("-");
 
-                                var start = new Date(2023, parseInt(dateStr[0]) - 1, parseInt(dateStr[1]), startTime[j - 2][0], startTime[j - 2][1], 0, 0);
+                                var start = new Date(2022, parseInt(dateStr[0]) - 1, parseInt(dateStr[1]), startTime[j - 2][0], startTime[j - 2][1], 0, 0);
                                 var end, flag = 0;
                                 for (var k = 0, len = mergeInfo[i - 1].length; k < len; ++k) {
                                     if (curRow + j - 1 >= mergeInfo[i - 1][k].y1 && curRow + j - 1 <= mergeInfo[i - 1][k].y2) {
                                         end = new Date(start.getTime() + (mergeInfo[i - 1][k].x2 - (i - 1)) * 24 * 60 * 60 * 1000);
+                                        //console.log(mergeInfo[i - 1][k],curRow);
                                         end.setHours(endTime[mergeInfo[i - 1][k].y2 - curRow - 1][0]);
                                         end.setMinutes(endTime[mergeInfo[i - 1][k].y2 - curRow - 1][1]);
                                         flag = 1;
@@ -204,9 +220,7 @@
                             }
                         }
                     }
-
-
-                    curRow += 15;
+                    
                 }
                 ans += "END:VCALENDAR\n";
                 const blob = new Blob([ans], { type: 'text/calendar' });
