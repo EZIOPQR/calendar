@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        * {
+            margin: 0px;
+            padding: 0px;
+            transition: all 1s;
+        }
+
+        h1 {
+            margin: auto;
+        }
+
+        hr {
+            color: black;
+            width: 90%;
+            border: none;
+            background-color: black;
+        }
+
+        #main {
+            margin: auto;
+            width: 500px;
+            height: 200px;
+            border: 3px solid black;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top:30px;
+        }
+
+        #upl {
+            display: none;
+        }
+
+        #uplBtn {
+            width: 120px;
+            height: 40px;
+            font-size: 18px;
+            background-color: rgb(255, 255, 255);
+            color: rgb(0, 0, 0);
+            border: 2px solid black;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        #fileName {
+            font-size: 16px;
+            color: rgb(150, 150, 150);
+            margin: 10px;
+        }
+
+        #download {
+            text-decoration: none;
+            font-size: 18px;
+            background-color: rgb(255, 255, 255);
+            color: rgb(0, 0, 0);
+            border: 2px solid black;
+            border-radius: 5px;
+            width: 260px;
+            height: 40px;
+            text-align: center;
+            margin: 10px;
+            margin-bottom: 30px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="main">
+        <br />
+        <h1>生成你的日程表!</h1>
+        <hr size="5" />
+        <br />
+        <div>
+            <input id="upl" type="file" onchange="change(this)" style="width: 320px;"
+                accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+            <input id="uplBtn" type="button" value="点我上传" onclick="document.querySelector('#upl').click()" />
+        </div>
+        <p id="fileName">
+
+        </p>
+    </div>
+    <script src="xlsx.full.min.js"></script>
+    <script>
+        var excelData;
+        var colName = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH", "AI", "AJ", "AK", "AL", "AM", "AN"];
+        var startTime = [[0, 0], [8, 0], [9, 0], [10, 10], [11, 10], [13, 0], [14, 0], [15, 10], [16, 10], [17, 10], [18, 40], [19, 40], [20, 40]];
+        var endTime = [[0, 0], [8, 50], [9, 50], [11, 0], [12, 0], [13, 50], [14, 50], [16, 0], [17, 0], [18, 0], [19, 30], [20, 30], [21, 30]];
+        var fileNameContainer = document.getElementById("fileName");
+        var main = document.getElementById("main");
+        var downloadBtn = document.createElement('input');
+        downloadBtn.id = "download";
+        downloadBtn.value = "生成完毕！点击下载日程表";
+        downloadBtn.onclick = function () {
+            link.click();
+        }
+
+        var link = document.createElement('a');
+
+        downloadBtn.style.display="none";
+
+        function convertDate(year, month, day, hour, minute) {
+            var s = "";
+            s += year;
+            if (month < 10) s += "0";
+            s += month;
+            if (day < 10) s += "0";
+            s += day;
+            s += "T";
+            if (hour < 10) s += "0";
+            s += hour;
+            if (minute < 10) s += "0";
+            s += minute;
+            s += "00";
+            return s;
+        }
+        function change(obj) {
+            if (!obj.files) {
+                return;
+            }
+            var file = obj.files[0];
+            fileNameContainer.innerHTML = file.name;
+            main.style.height = "350px";
+            var reader = new FileReader();
+
+            reader.onload = function (e) {
+                var data = e.target.result;
+                excelData = XLSX.read(data, {
+                    type: 'binary'
+                });
+                var curSheet = excelData.Sheets[excelData.SheetNames[0]];
+                console.log(curSheet);
+                var mergeInfo = new Array();
+                for (var i = 0; i < 32; ++i) {
+                    mergeInfo[i] = new Array();
+                }
+
+                for (var i = 0, len = curSheet["!merges"].length; i < len; ++i) {
+                    var m = curSheet["!merges"][i];
+                    if (m.s.c >= 2 && m.s.c <= 31 && m.s.r >= 2 && (m.s.r - 0) % 13 >= 4) {
+                        for (var j = m.s.c; j <= m.e.c; ++j) {
+                            mergeInfo[j].push({ x1: m.s.c, y1: m.s.r, x2: m.e.c, y2: m.e.r });
+                        }
+                    }
+                }
+                //console.log(mergeInfo);
+
+                var curRow = 3;
+                var ans = "";
+
+                var curDate = new Date();
+                var timeStamp = curDate.getTime();
+
+                ans += "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:TPLink\nMETHOD:PUBLISH\nX-WR-CALNAME:Time Schedule\n";
+                while (1) {
+                    var startCellName = colName[0] + curRow;
+                    if (typeof (curSheet[startCellName]) == "undefined") {
+                        break;
+                    }
+                    for (var i = 3; i <= 32; ++i) {
+                        for (var j = 3; j <= 11; ++j) {
+                            var cellName = colName[i - 1] + (curRow + j);
+                            if (typeof (curSheet[cellName]) != "undefined") {
+                                if (curSheet[cellName].v.trim().length == 0) continue;
+                                var dateStr = curSheet[colName[i - 1] + (curRow + 1)].v;
+                                dateStr = dateStr.split("-");
+
+                                var start = new Date(2023, parseInt(dateStr[0]) - 1, parseInt(dateStr[1]), startTime[j - 2][0], startTime[j - 2][1], 0, 0);
+                                var end, flag = 0;
+                                for (var k = 0, len = mergeInfo[i - 1].length; k < len; ++k) {
+                                    if (curRow + j - 1 >= mergeInfo[i - 1][k].y1 && curRow + j - 1 <= mergeInfo[i - 1][k].y2) {
+                                        end = new Date(start.getTime() + (mergeInfo[i - 1][k].x2 - (i - 1)) * 24 * 60 * 60 * 1000);
+                                        end.setHours(endTime[mergeInfo[i - 1][k].y2 - curRow - 1][0]);
+                                        end.setMinutes(endTime[mergeInfo[i - 1][k].y2 - curRow - 1][1]);
+                                        flag = 1;
+                                        break;
+                                    }
+                                }
+                                if (!flag) {
+                                    end = new Date(start.getTime());
+                                    end.setHours(endTime[j - 2][0]);
+                                    end.setMinutes(endTime[j - 2][1]);
+                                }
+
+                                ans += "BEGIN:VEVENT\n";
+                                ans += "SUMMARY:" + curSheet[cellName].v.trim().replaceAll('\n', " ") + "\n";
+                                ans += "DESCRIPTION:\n";
+                                ans += "DTSTART;VALUE=DATE-TIME:" + convertDate(start.getFullYear(), start.getMonth() + 1, start.getDate(), start.getHours(), start.getMinutes()) + "\n";
+                                ans += "DTEND;VALUE=DATE-TIME:" + convertDate(end.getFullYear(), end.getMonth() + 1, end.getDate(), end.getHours(), end.getMinutes()) + "\n";
+                                ans += "DTSTAMP;VALUE=DATE-TIME:" + convertDate(curDate.getFullYear(), curDate.getMonth() + 1, curDate.getDate(), curDate.getHours(), curDate.getMinutes()) + "Z\n";
+                                ans += "UID:" + window.btoa(unescape(encodeURIComponent(curSheet[cellName].v + timeStamp + i + "," + j + ","))) + Math.random() + "__TPLink" + "\n";
+                                ans += "TRANSP:OPAQUE\n";
+                                ans += "CLASS:PRIVATE\n";
+                                ans += "END:VEVENT\n";
+                            }
+                        }
+                    }
+
+
+                    curRow += 15;
+                }
+                ans += "END:VCALENDAR\n";
+                const blob = new Blob([ans], { type: 'text/calendar' });
+                
+                link.href = window.URL.createObjectURL(blob);
+                link.download = 'Calendar.ics';
+                downloadBtn.style.display="inline";
+
+                main.appendChild(downloadBtn);
+            };
+            reader.readAsBinaryString(file);
+
+        }
+    </script>
+</body>
+
+</html>
