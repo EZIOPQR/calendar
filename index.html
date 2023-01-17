@@ -189,7 +189,7 @@
                                 var dateStr = curSheet[colName[i - 1] + (curRow + 1)].v;
                                 dateStr = dateStr.split("-");
 
-                                var start = new Date(2022, parseInt(dateStr[0]) - 1, parseInt(dateStr[1]), startTime[j - 2][0], startTime[j - 2][1], 0, 0);
+                                var start = new Date(2023, parseInt(dateStr[0]) - 1, parseInt(dateStr[1]), startTime[j - 2][0], startTime[j - 2][1], 0, 0);
                                 var end, flag = 0;
                                 for (var k = 0, len = mergeInfo[i - 1].length; k < len; ++k) {
                                     if (curRow + j - 1 >= mergeInfo[i - 1][k].y1 && curRow + j - 1 <= mergeInfo[i - 1][k].y2) {
